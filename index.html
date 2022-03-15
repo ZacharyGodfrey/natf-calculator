@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="NATF Stats Calculator">
+    <title>NATF Stats Calculator</title>
+    <!-- <link rel="shortcut icon" type="image/png" href="data:image/png;base64,//favicon"> -->
+    <style>
+      /* @font-face {
+        font-family: "custom-font";
+        src: url(data:application/x-font-ttf;charset=utf-8;base64,//font);
+      } */
+      /* style */
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- content -->
+    </main>
+
+    <script>
+        const getStats = (() => {
+            const repeat = (value, count) => {
+                return Array(count).fill(value);
+            };
+
+            const buildSet = (summary) => {
+                return Object.entries(summary).reduce((result, [value, occurrences]) => {
+                    const values = repeat(parseInt(value, 10), occurrences);
+
+                    return result.concat(values);
+                }, []);
+            };
+
+            const round = (value, precision) => {
+                const factor = Math.pow(10, precision);
+
+                return Math.round(value * factor) / factor;
+            };
+
+            const sum = (values) => {
+                return values.reduce((total, value) => total + value);
+            };
+
+            const mean = (values) => {
+                return sum(values) / values.length;
+            };
+
+            const clutchStats = (left, right, hitPercent, precision) => {
+                const hits = sum([left, right]);
+                const attempts = hits * 100 / hitPercent;
+                const summary = {
+                    7: hits,
+                    0: attempts - hits
+                };
+
+                return {
+                    attempts,
+                    average: round(mean(buildSet(summary)), precision),
+                    summary
+                };
+            };
+
+            const targetStats = (center, inner, outer, centerPercent, precision) => {
+                const hits = sum([center, inner, outer]);
+                const attempts = center * 100 / centerPercent;
+                const summary = {
+                    5: center,
+                    3: inner,
+                    1: outer,
+                    0: attempts - hits
+                };
+
+                return {
+                    attempts,
+                    average: round(mean(buildSet(summary)), precision),
+                    summary
+                };
+            };
+
+            return (config) => {
+                const { left, right, clutchPercent } = config;
+                const { center, inner, outer, centerPercent } = config;
+                const clutch = clutchStats(left, right, clutchPercent, 2);
+                const target = targetStats(center, inner, outer, centerPercent, 2);
+
+                const { average: clutchAvg } = clutch;
+                const { average: targetAvg } = target;
+                const maxAvg = Math.max(clutchAvg, targetAvg);
+                const minAvg = Math.min(clutchAvg, targetAvg);
+                const recommendation = clutch.average > target.average ? 'clutch' : 'target';
+                const strength = maxAvg - minAvg;
+
+                return {
+                    clutch,
+                    target,
+                    recommendation: `${recommendation} (${strength} points)`
+                };
+            };
+        })();
+
+        const currentStats = getStats({
+            left: 0,
+            right: 2,
+            clutchPercent: 25,
+            center: 33,
+            inner: 16,
+            outer: 2,
+            centerPercent: 60
+        });
+
+        console.log(JSON.stringify(currentStats, null, 2));
+    </script>
+  </body>
+</html>
